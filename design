@@ -1,0 +1,47 @@
+To create a bus for communications between master device with led matrices, assume the led matrices is shown as below. 
+
+    ---     ---    ---
+    -0-     -0-    -0-
+    ---     ---    ---
+    
+    ---     ---    ---
+    -0-     -0-    -0-
+    ---     ---    ---
+    
+    ---     ---    ---
+    -0-     -0-    -0-
+    ---     ---    ---
+    
+   My design will have all 9 center led devices connected via a I2C bus, that each master device shares the same clock and data line, with 
+   different register addresses. Assume I2C bus is implemented using the traditional I2C implementation. A sequence of command will be sent 
+   down the line
+   
+   0x11021232131 00 1202321321321 00 13022382831 00 ....
+   
+   register header will be sent as the first two bytes of the sequence and 00 represents seperate values for different registers. 
+   Therefore, when individial control led device found the two bytes values after every 00 equals its register value, it will record values after
+   the header, before the 00. 
+   
+   ----------------SCL----------------------------------------------
+   ----------------SDA----------|---|---|---|---|---|---|---|---|---
+    
+    When value is been read, individual value will be read from the center control led using shift register to corresponding positions
+    In the mean time, an acknowledgment bit will be sent to the previous center control unit. The circuit is shown below. 
+    Here the control led at the end of each row will be connected sequentially.
+    
+    ---     ---    ---
+    -0-------0------0-
+    ---     ---    ---
+    
+    ---     ---    ---
+    -0-------0------0-
+    ---     ---    ---
+    
+    ---     ---    ---
+    -0-------0------0-
+    ---     ---    ---
+    
+    Using and gate, if center led devices, except the last time, received an acknowlegement bit from the next device, it will forward
+    a 1 if 1 AND 1 happens. Therefore, if the first device received 1 from its next device, it will write to the master device using 
+    the same I2C bus, 0x010000000 etc. And so the process will be synced each loop and the master device will send a new command when 
+    received acknowlegment bit
